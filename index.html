@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Science Research Topic Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        warm: {
+                            50: '#fafaf9',
+                            100: '#f5f5f4',
+                            200: '#e7e5e4',
+                            300: '#d6d3d1',
+                            400: '#a8a29e',
+                            500: '#78716c',
+                            600: '#57534e',
+                            700: '#44403c',
+                            800: '#292524',
+                            900: '#1c1917',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fafaf9; /* warm-50 */
+            color: #292524; /* warm-800 */
+        }
+
+        /* Required Chart Container Styling */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        .topic-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .topic-btn.active {
+            background-color: #44403c;
+            color: #fafaf9;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transform: translateY(-2px);
+        }
+
+        .topic-btn:hover:not(.active) {
+            background-color: #e7e5e4;
+            transform: translateY(-1px);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+
+    <!-- Chosen Palette: Warm Minimalist (Stone/Warm Gray tones for a calm, academic feel. Accents of deep slate.) -->
+    
+    <!-- Application Structure Plan: 
+    The SPA acts as an "Interactive Topic Explorer" dashboard. Since the user requested a simple and interesting data science research topic, I am structuring the "report" as a curated list of top 5 undergraduate topics. 
+    - Left/Top Sidebar: Topic selection menu (functional navigation).
+    - Main Content Area: Dynamic display of the selected topic's details.
+    - Reason: This prevents overwhelming the user with text. By clicking through topics, they can actively explore the difficulty, datasets, and required algorithms for each idea, making the selection process engaging.
+    -->
+
+    <!-- Visualization & Content Choices: 
+    - Goal: Compare topic characteristics (Difficulty, Impact, Data Availability).
+    - Viz: Radar Chart (Chart.js). Justification: Excellent for showing multi-dimensional profiles of a specific topic at a glance.
+    - Goal: Inform on technical requirements (Algorithms used).
+    - Viz: Bar Chart (Chart.js). Justification: Easily compares the prevalence or importance of different algorithms for the chosen topic.
+    - Interaction: Clicking topic buttons updates both the textual context and the datasets in the charts dynamically.
+    -->
+
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header Section -->
+        <header class="mb-10 text-center md:text-left border-b border-warm-200 pb-6">
+            <h1 class="text-3xl md:text-5xl font-bold text-warm-800 mb-3">Undergraduate Data Science Research</h1>
+            <h2 class="text-xl md:text-2xl text-warm-500 font-light">Interactive Topic Explorer</h2>
+        </header>
+
+        <!-- Main Introduction -->
+        <section class="mb-10 bg-white p-6 rounded-xl shadow-sm border border-warm-100">
+            <h3 class="text-lg font-semibold mb-2">Welcome to your Research Journey</h3>
+            <p class="text-warm-600 leading-relaxed">
+                Choosing an undergraduate research topic in Data Science can be overwhelming. This interactive guide presents five simple, highly engaging, and practical research domains perfect for beginners. Select a topic from the menu below to explore its real-world impact, required skill sets, and an analysis of the typical algorithms you will encounter. Use the charts to gauge the learning curve and data availability before making your choice.
+            </p>
+        </section>
+
+        <!-- Dashboard Layout -->
+        <div class="flex flex-col lg:flex-row gap-8">
+            
+            <!-- Navigation Sidebar (Topic Selectors) -->
+            <nav class="lg:w-1/3 flex flex-col gap-3" id="topic-nav">
+                <div class="text-sm font-bold uppercase tracking-wider text-warm-400 mb-2">Curated Topics</div>
+                <!-- Buttons injected via JS -->
+            </nav>
+
+            <!-- Dynamic Content Area -->
+            <main class="lg:w-2/3 bg-white rounded-xl shadow-sm border border-warm-100 p-6 md:p-8 min-h-[600px]" id="content-area">
+                
+                <div id="topic-content" class="fade-in">
+                    <div class="mb-6 inline-block bg-warm-100 text-warm-700 px-3 py-1 rounded-full text-sm font-medium tracking-wide" id="topic-category">
+                        Category
+                    </div>
+                    <h2 class="text-2xl md:text-4xl font-bold text-warm-800 mb-4" id="topic-title">Select a Topic</h2>
+                    
+                    <p class="text-warm-600 text-lg mb-6 leading-relaxed" id="topic-description">
+                        Click on one of the topics on the left to explore its details.
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 border-t border-b border-warm-100 py-6">
+                        <div>
+                            <h4 class="font-bold text-warm-800 mb-2 flex items-center">
+                                <span class="text-xl mr-2">🎯</span> Why it's interesting
+                            </h4>
+                            <p class="text-warm-600 text-sm" id="topic-why">...</p>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-warm-800 mb-2 flex items-center">
+                                <span class="text-xl mr-2">⚙️</span> Required Skills
+                            </h4>
+                            <p class="text-warm-600 text-sm" id="topic-skills">...</p>
+                        </div>
+                    </div>
+
+                    <!-- Visualizations Section -->
+                    <div class="space-y-12">
+                        <!-- Radar Chart Section -->
+                        <div>
+                            <h3 class="text-xl font-semibold mb-2 text-center text-warm-800">Topic Profile Analysis</h3>
+                            <p class="text-center text-sm text-warm-500 mb-4">A breakdown of difficulty, impact, dataset availability, and learning curve.</p>
+                            <div class="chart-container">
+                                <canvas id="radarChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Bar Chart Section -->
+                        <div>
+                            <h3 class="text-xl font-semibold mb-2 text-center text-warm-800">Primary Algorithms Used</h3>
+                            <p class="text-center text-sm text-warm-500 mb-4">Common machine learning models applied in this research area.</p>
+                            <div class="chart-container">
+                                <canvas id="barChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Footer Section -->
+        <footer class="mt-12 text-center border-t border-warm-200 pt-6 pb-4 text-warm-500 text-sm">
+            &copy; 2026 Raveesha Ramitha Lanarolle. All rights reserved.
+        </footer>
+    </div>
+
+    <script>
+        // --- 1. Data Storage ---
+        // Contains all textual and quantitative data for the interactive application.
+        const topicsData = {
+            "predictive-maintenance": {
+                id: "predictive-maintenance",
+                title: "Student Dropout Prediction",
+                category: "Classification / Tabular Data",
+                description: "Using historical academic, demographic, and behavioral data to predict which students are at high risk of dropping out of a university program. This is a classic binary classification problem.",
+                why: "It has a direct, positive social impact. Universities can use this model to provide early interventions, tutoring, or financial aid to students who are struggling. Datasets are abundant (e.g., UCI Machine Learning Repository).",
+                skills: "Data Cleaning (Pandas), Exploratory Data Analysis (EDA), Scikit-Learn (Logistic Regression, Random Forests), Model Evaluation (Precision, Recall).",
+                profileData: [40, 85, 90, 50], // Difficulty, Impact, Data Availability, Learning Curve (0-100)
+                algoLabels: ["Logistic Regression", "Random Forest", "XGBoost", "Decision Trees", "SVM"],
+                algoData: [85, 95, 80, 70, 60] // Usage prevalence percentage
+            },
+            "sentiment-analysis": {
+                id: "sentiment-analysis",
+                title: "Movie/Product Sentiment Analysis",
+                category: "Natural Language Processing",
+                description: "Analyzing text data (like Amazon reviews or IMDB movie reviews) to automatically classify the sentiment of the text as positive, negative, or neutral.",
+                why: "NLP is one of the hottest fields in AI. This project provides a gentle but highly rewarding introduction to text processing, tokenization, and working with unstructured data.",
+                skills: "NLTK or SpaCy for text processing, TF-IDF / Bag of Words, Naive Bayes, Basic Neural Networks.",
+                profileData: [55, 70, 95, 65],
+                algoLabels: ["Naive Bayes", "LSTM (Basic)", "VADER/TextBlob", "Logistic Regression", "Transformers (BERT)"],
+                algoData: [90, 60, 85, 75, 40] 
+            },
+            "price-prediction": {
+                id: "price-prediction",
+                title: "Real Estate Price Prediction",
+                category: "Regression Analysis",
+                description: "Building a model to estimate the price of a house based on its features (number of bedrooms, location, square footage, age, etc.).",
+                why: "This is the perfect introductory project to understand Continuous Variables and Regression. It's highly intuitive, easy to interpret, and the results are easy to visualize with scatter plots.",
+                skills: "Correlation Analysis, Feature Engineering, Linear Regression, Gradient Boosting.",
+                profileData: [30, 60, 95, 30],
+                algoLabels: ["Linear Regression", "Ridge/Lasso", "Random Forest Regressor", "Gradient Boosting", "KNN Regressor"],
+                algoData: [95, 80, 85, 70, 50]
+            },
+            "fake-news": {
+                id: "fake-news",
+                title: "Fake News Detection System",
+                category: "NLP / Classification",
+                description: "Creating an algorithm that can take a news article's headline and body text and classify it as 'Reliable' or 'Fake News' based on linguistic patterns.",
+                why: "A highly relevant modern problem. It teaches you how to handle complex text representations and how to deal with biases in datasets. It's a great portfolio piece.",
+                skills: "Advanced Text Preprocessing, Word Embeddings (Word2Vec/GloVe), Sequence Models, Scikit-Learn.",
+                profileData: [70, 90, 75, 75],
+                algoLabels: ["Passive Aggressive Classifier", "LSTM/GRU", "Random Forest", "Naive Bayes", "BERT"],
+                algoData: [85, 80, 60, 70, 65]
+            },
+            "customer-segmentation": {
+                id: "customer-segmentation",
+                title: "E-commerce Customer Segmentation",
+                category: "Unsupervised Learning",
+                description: "Grouping customers into distinct segments based on their purchasing behavior, frequency of visits, and spending habits without pre-labeled classes.",
+                why: "Unlike the other topics, this relies on *Unsupervised Learning*. It's a massive use-case in real-world business (marketing analytics) and teaches you how to find hidden patterns in data.",
+                skills: "Data Scaling, Dimensionality Reduction (PCA), K-Means Clustering, Silhouette Scores, Data Visualization.",
+                profileData: [50, 80, 85, 60],
+                algoLabels: ["K-Means", "Hierarchical Clustering", "DBSCAN", "PCA (for reduction)", "Gaussian Mixture"],
+                algoData: [95, 75, 60, 85, 50]
+            }
+        };
+
+        // --- 2. State Management ---
+        let currentTopicId = null;
+        let radarChartInstance = null;
+        let barChartInstance = null;
+
+        // --- 3. Chart Initialization & Config ---
+        // Global Chart.js defaults for aesthetics matching the Tailwind theme
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#78716c'; // warm-500
+        Chart.defaults.scale.grid.color = '#e7e5e4'; // warm-200
+
+        function initCharts() {
+            const radarCtx = document.getElementById('radarChart').getContext('2d');
+            const barCtx = document.getElementById('barChart').getContext('2d');
+
+            radarChartInstance = new Chart(radarCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Difficulty (Low is easy)', 'Real-World Impact', 'Dataset Availability', 'Learning Curve'],
+                    datasets: [{
+                        label: 'Topic Profile',
+                        data: [0,0,0,0],
+                        backgroundColor: 'rgba(68, 64, 60, 0.2)', // warm-700 w/ opacity
+                        borderColor: '#44403c', // warm-700
+                        pointBackgroundColor: '#292524', // warm-800
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#292524'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // CRITICAL for chart-container functionality
+                    scales: {
+                        r: {
+                            angleLines: { color: '#e7e5e4' },
+                            grid: { color: '#e7e5e4' },
+                            pointLabels: {
+                                font: { size: 12, weight: '500' },
+                                color: '#57534e'
+                            },
+                            ticks: { display: false, min: 0, max: 100 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#292524',
+                            titleFont: { size: 13 },
+                            bodyFont: { size: 13 },
+                            padding: 10,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) { return context.parsed.r + ' / 100'; }
+                            }
+                        }
+                    }
+                }
+            });
+
+            barChartInstance = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['A', 'B', 'C', 'D', 'E'],
+                    datasets: [{
+                        label: 'Usage/Relevance (%)',
+                        data: [0,0,0,0,0],
+                        backgroundColor: '#a8a29e', // warm-400
+                        hoverBackgroundColor: '#57534e', // warm-600
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // CRITICAL for chart-container functionality
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { stepSize: 20 }
+                        },
+                        x: {
+                            ticks: {
+                                // Label wrapping logic (approx 16 chars)
+                                callback: function(value) {
+                                    let label = this.getLabelForValue(value);
+                                    if (label.length > 15) {
+                                        return label.match(/.{1,15}(\s|$)/g) || label;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#292524',
+                            padding: 10
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- 4. Core Interaction Handling ---
+        function updateUI(topicId) {
+            if (currentTopicId === topicId) return;
+            currentTopicId = topicId;
+            const data = topicsData[topicId];
+
+            // Update Navigation Active State
+            document.querySelectorAll('.topic-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.target === topicId) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Trigger Animation
+            const contentDiv = document.getElementById('topic-content');
+            contentDiv.classList.remove('fade-in');
+            void contentDiv.offsetWidth; // Trigger reflow
+            contentDiv.classList.add('fade-in');
+
+            // Update Text Content
+            document.getElementById('topic-category').innerText = data.category;
+            document.getElementById('topic-title').innerText = data.title;
+            document.getElementById('topic-description').innerText = data.description;
+            document.getElementById('topic-why').innerText = data.why;
+            document.getElementById('topic-skills').innerText = data.skills;
+
+            // Update Charts Data
+            radarChartInstance.data.datasets[0].data = data.profileData;
+            radarChartInstance.update();
+
+            barChartInstance.data.labels = data.algoLabels;
+            barChartInstance.data.datasets[0].data = data.algoData;
+            barChartInstance.update();
+        }
+
+        // --- 5. Initialization ---
+        function buildNavigation() {
+            const navContainer = document.getElementById('topic-nav');
+            Object.values(topicsData).forEach(topic => {
+                const btn = document.createElement('button');
+                btn.className = 'topic-btn w-full text-left px-4 py-3 rounded-lg border border-warm-200 bg-white text-warm-700 font-medium';
+                btn.dataset.target = topic.id;
+                btn.innerText = topic.title;
+                btn.addEventListener('click', () => updateUI(topic.id));
+                navContainer.appendChild(btn);
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            buildNavigation();
+            initCharts();
+            // Load the first topic by default
+            updateUI(Object.keys(topicsData)[0]);
+        });
+    </script>
+</body>
+</html>
